@@ -1,5 +1,7 @@
 const express = require('express');
 const path = require('path');
+const axios = require('axios');
+const xml2js = require('xml2js');
 
 const app = express();
 const port = 3000;
@@ -10,31 +12,42 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-const axios = require('axios');
-const xml2js = require('xml2js');
-
 app.get('/search', async (req, res) => {
     const gameName = req.query.name;
     if (!gameName) {
-        return res.status(400).send('A game name is required.');
+        return res.status(400).json({ message: 'A game name is required.' });
     }
 
     try {
-        // Search for the game by name to get its ID
         const searchUrl = `https://boardgamegeek.com/xmlapi/search?search=${encodeURIComponent(gameName)}`;
         const searchResponse = await axios.get(searchUrl);
-
         const searchResult = await xml2js.parseStringPromise(searchResponse.data);
+
         if (!searchResult.boardgames.boardgame || searchResult.boardgames.boardgame.length === 0) {
-            return res.status(404).send('Game not found.');
+            return res.status(404).json({ message: 'Game not found.' });
         }
 
-        const gameId = searchResult.boardgames.boardgame[0].$.objectid;
+        const games = searchResult.boardgames.boardgame.map(game => ({
+            id: game.$.objectid,
+            name: game.name[0].$.value
+        }));
 
-        // Get the game details using the ID
+        res.json(games);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'An error occurred while fetching data from the BoardGameGeek API.' });
+    }
+});
+
+app.get('/game/:id', async (req, res) => {
+    const gameId = req.params.id;
+    if (!gameId) {
+        return res.status(400).send('A game ID is required.');
+    }
+
+    try {
         const gameUrl = `https://boardgamegeek.com/xmlapi/boardgame/${gameId}`;
         const gameResponse = await axios.get(gameUrl);
-
         const gameResult = await xml2js.parseStringPromise(gameResponse.data);
         const description = gameResult.boardgames.boardgame[0].description[0];
 

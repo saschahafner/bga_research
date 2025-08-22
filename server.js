@@ -27,10 +27,16 @@ app.get('/search', async (req, res) => {
             return res.status(404).json({ message: 'Game not found.' });
         }
 
-        const games = searchResult.boardgames.boardgame.map(game => ({
-            id: game.$.objectid,
-            name: game.name[0].$.value
-        }));
+        const games = searchResult.boardgames.boardgame.map(game => {
+            const nameElement = game.name[0];
+            // The name can either be in the text content of the tag or in a 'value' attribute.
+            // This handles both possibilities.
+            const name = nameElement._ || nameElement.$.value;
+            return {
+                id: game.$.objectid,
+                name: name
+            };
+        });
 
         res.json(games);
     } catch (error) {

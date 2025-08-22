@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Board Game Search</title>
+</head>
+<body>
+    <h1>Board Game Search</h1>
+    <form id="search-form">
+        <input type="text" id="boardgame-name" placeholder="Enter board game name" required>
+        <button type="submit">Search</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('search-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const gameName = document.getElementById('boardgame-name').value;
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Searching...';
+
+            try {
+                const response = await fetch(`/search?name=${encodeURIComponent(gameName)}`);
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                const description = await response.text();
+                resultDiv.innerHTML = description;
+            } catch (error) {
+                resultDiv.innerHTML = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -14,14 +14,56 @@
     <div id="result"></div>
 
     <script>
-        document.getElementById('search-form').addEventListener('submit', async (event) => {
+        const searchForm = document.getElementById('search-form');
+        const gameNameInput = document.getElementById('boardgame-name');
+        const resultDiv = document.getElementById('result');
+
+        searchForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const gameName = document.getElementById('boardgame-name').value;
-            const resultDiv = document.getElementById('result');
+            const gameName = gameNameInput.value;
             resultDiv.innerHTML = 'Searching...';
 
             try {
-                const response = await fetch(`/search?name=${encodeURIComponent(gameName)}`);
+                const searchResponse = await fetch(`/search?name=${encodeURIComponent(gameName)}`);
+                if (!searchResponse.ok) {
+                    const error = await searchResponse.json();
+                    throw new Error(error.message);
+                }
+                const games = await searchResponse.json();
+
+                if (games.length === 1) {
+                    fetchDescription(games[0].id);
+                } else {
+                    displayGameList(games);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `Error: ${error.message}`;
+            }
+        });
+
+        function displayGameList(games) {
+            resultDiv.innerHTML = '<h2>Please select a game:</h2>';
+            const ul = document.createElement('ul');
+            games.forEach(game => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = '#';
+                a.textContent = game.name;
+                a.dataset.id = game.id;
+                a.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    fetchDescription(event.target.dataset.id);
+                });
+                li.appendChild(a);
+                ul.appendChild(li);
+            });
+            resultDiv.appendChild(ul);
+        }
+
+        async function fetchDescription(gameId) {
+            resultDiv.innerHTML = 'Fetching description...';
+            try {
+                const response = await fetch(`/game/${gameId}`);
                 if (!response.ok) {
                     throw new Error(await response.text());
                 }
@@ -30,7 +72,7 @@
             } catch (error) {
                 resultDiv.innerHTML = `Error: ${error.message}`;
             }
-        });
+        }
     </script>
 </body>
 </html>
